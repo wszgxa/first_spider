@@ -12,7 +12,7 @@ cur.execute("USE "+ db)
 
 def getData(url):
   print(url)
-  html = urlopen(url)
+  html = urlopen(url, timeout=4)
   soup = BeautifulSoup(html, 'html5lib', from_encoding="GB18030")
   return soup.find_all('a', class_='ulink',href=re.compile(r'[0-9]+.html$'))
 
@@ -24,9 +24,13 @@ def getGoodData(tag, url):
   if cur.rowcount == 0:
     sourecType = urlArray[tag][0]
     kind = urlArray[tag][2]
-    html = urlopen(url)
+    html = urlopen(url, timeout=4)
     soup = BeautifulSoup(html, 'html5lib', from_encoding="GB18030")
     content = ''
+    mg = []
+    for item in soup.find(class_='co_content8').find_all('a', href=re.compile(r'^ftp://[/s/S]*')):
+    	mg.append(item.get('href'))
+    print(str(mg))
     try:
     	content = soup.find(class_='co_content8').find('p').prettify()
     except :
@@ -38,16 +42,16 @@ def getGoodData(tag, url):
         url,
         soup.find('h1').find('font').get_text(),
         content,
-        soup.find(class_='co_content8').find('a', href=re.compile(r'^ftp://[/s/S]*')).get('href')
+        str(mg)
         ))
-    print(soup.find(class_='co_content8').find('a', href=re.compile(r'^ftp://[/s/S]*')).get('href'))
     conn.commit()
 def spData(tag, pageCount):
   sourecType = urlArray[tag][0]
   kind = urlArray[tag][2]
   listTag = urlArray[tag][3]
   tt = 0
-  while tt < 2:
+  zz = 0
+  while tt < 2 and zz < 20:
     linkList = getData(getPage(tag, listTag, pageCount))
     if not linkList:
       tt = tt + 1
@@ -61,13 +65,15 @@ def spData(tag, pageCount):
     for item in linkList:
       try:
         getGoodData(tag, kind[0:len(kind)-1]+item.get('href'))
+        zz = 0
       except:
-        print('获取'+item.get('href')+"数据出错")
+      	zz = zz + 1
+      	print('获取'+item.get('href')+"数据出错")
   if tag+1 < len(urlArray):
     print('爬取下个类型')
     cur.execute("UPDATE tagNum SET tag = %s WHERE id = 1", (tag+1))
     conn.commit()
-    spData(tag+1, 0)
+    spData(tag+1, 1)
 
 cur.execute("SELECT title, url, type, listTag  FROM title")
 urlArray = cur.fetchall()
