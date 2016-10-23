@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import re
 import pymysql
 from config import dbUser, dbPassword, db
-conn = pymysql.connect(host='127.0.0.1', unix_socket='/tmp/mysql.sock',user=
+conn = pymysql.connect(host='127.0.0.1', unix_socket='/var/run/mysqld/mysqld.sock',user=
                       dbUser, passwd=dbPassword, db=db, charset='utf8')
 cur = conn.cursor()
 cur.execute("USE "+ db)

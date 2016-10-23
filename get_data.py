@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import re
 import pymysql
 from config import dbUser, dbPassword, db
-conn = pymysql.connect(host='127.0.0.1', unix_socket='/tmp/mysql.sock',user=
+conn = pymysql.connect(host='127.0.0.1', unix_socket='/var/run/mysqld/mysqld.sock',user=
                       dbUser, passwd=dbPassword, db=db, charset='utf8')
 cur = conn.cursor()
 cur.execute("USE "+ db)
@@ -14,7 +14,7 @@ def getData(url):
   print(url)
   html = urlopen(url)
   soup = BeautifulSoup(html, 'html5lib', from_encoding="GB18030")
-  return soup.find_all('a', class_='ulink')
+  return soup.find_all('a', class_='ulink',href=re.compile(r'[0-9]+.html$'))
 
 def getPage(tag, listNum, tt):
   return urlArray[tag][1].rstrip('index.html') + 'list_' + listNum +'_' + str(tt)+'.html'
@@ -26,15 +26,21 @@ def getGoodData(tag, url):
     kind = urlArray[tag][2]
     html = urlopen(url)
     soup = BeautifulSoup(html, 'html5lib', from_encoding="GB18030")
+    content = ''
+    try:
+    	content = soup.find(class_='co_content8').find('p').prettify()
+    except :
+    	content = 'not found'
     cur.execute("INSERT INTO data(type, kind, url, title, content, magnetic) VALUES (%s, %s, %s, %s, %s, %s)",
       (
         sourecType,
         kind,
         url,
         soup.find('h1').find('font').get_text(),
-        soup.find(class_='co_content8').find('p').get_text(),
-        soup.find(class_='co_content8').find('a').get('href')
+        content,
+        soup.find(class_='co_content8').find('a', href=re.compile(r'^ftp://[/s/S]*')).get('href')
         ))
+    print(soup.find(class_='co_content8').find('a', href=re.compile(r'^ftp://[/s/S]*')).get('href'))
     conn.commit()
 def spData(tag, pageCount):
   sourecType = urlArray[tag][0]
@@ -61,7 +67,7 @@ def spData(tag, pageCount):
     print('爬取下个类型')
     cur.execute("UPDATE tagNum SET tag = %s WHERE id = 1", (tag+1))
     conn.commit()
-    spData(tag+1)
+    spData(tag+1, 0)
 
 cur.execute("SELECT title, url, type, listTag  FROM title")
 urlArray = cur.fetchall()

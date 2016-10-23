@@ -1,3 +1,3 @@
 dbUser = 'root'
-dbPassword = 'hiluluke123'
-db = 'dytt'
+dbPassword = 'zgxksfdydx123'
+db = 'spider'
