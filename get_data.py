@@ -36,19 +36,22 @@ def getGoodData(tag, url):
         soup.find(class_='co_content8').find('a').get('href')
         ))
     conn.commit()
-def spData(tag):
+def spData(tag, pageCount):
   sourecType = urlArray[tag][0]
   kind = urlArray[tag][2]
   listTag = urlArray[tag][3]
-  pageCount = 1
   tt = 0
   while tt < 2:
     linkList = getData(getPage(tag, listTag, pageCount))
     if not linkList:
       tt = tt + 1
       pageCount = pageCount + 1
+      cur.execute("UPDATE tagNum SET pageCount = %s WHERE id = 1", (pageCount))
+      conn.commit()
       continue
     pageCount = pageCount + 1
+    cur.execute("UPDATE tagNum SET pageCount = %s WHERE id = 1", (pageCount))
+    conn.commit()
     for item in linkList:
       try:
         getGoodData(tag, kind[0:len(kind)-1]+item.get('href'))
@@ -56,18 +59,16 @@ def spData(tag):
         print('获取'+item.get('href')+"数据出错")
   if tag+1 < len(urlArray):
     print('爬取下个类型')
+    cur.execute("UPDATE tagNum SET tag = %s WHERE id = 1", (tag+1))
+    conn.commit()
     spData(tag+1)
 
 cur.execute("SELECT title, url, type, listTag  FROM title")
 urlArray = cur.fetchall()
-cur.execute("SELECT title, url, type, listTag FROM tag")
+cur.execute("SELECT tag, pageCount FROM tagNum")
+hiTag = cur.fetchall()[0]
+spData(int(hiTag[0]), int(hiTag[1]))
 
-if cur.rowcount == 0:
-  spData(0)
-else:
-  tagOne = cur.fetchone()
-  if tagOne in urlArray:
-    spData(urlArray.index(tagOne))
-  else:
-    print('错误:tag不再title里面')
+cur.close()
+conn.close()
 print(urlArray)
