@@ -14,26 +14,28 @@ def getData(url):
   print(url)
   html = urlopen(url)
   soup = BeautifulSoup(html, 'html5lib', from_encoding="GB18030")
-  print(soup)
   return soup.find_all('a', class_='ulink')
 
 def getPage(tag, listNum, tt):
   return urlArray[tag][1].rstrip('index.html') + 'list_' + listNum +'_' + str(tt)+'.html'
 def getGoodData(tag, url):
-  sourecType = urlArray[tag][0]
-  kind = urlArray[tag][2]
-  html = urlopen(url)
-  soup = BeautifulSoup(html, 'html5lib', from_encoding="GB18030")
-  cur.execute("INSERT INTO data(type, kind, url, title, content, magnetic) VALUES (%s, %s, %s, %s, %s, %s)",
-    (
-      sourecType,
-      kind,
-      url,
-      soup.find('h1').find('font').get_text(),
-      soup.find(class_='co_content8').find('p').get_text(),
-      soup.find(class_='co_content8').find('a').get('href')
-      ))
-  conn.commit()
+  print(url)
+  cur.execute("SELECT * FROM data WHERE url = %s", (url))
+  if cur.rowcount == 0:
+    sourecType = urlArray[tag][0]
+    kind = urlArray[tag][2]
+    html = urlopen(url)
+    soup = BeautifulSoup(html, 'html5lib', from_encoding="GB18030")
+    cur.execute("INSERT INTO data(type, kind, url, title, content, magnetic) VALUES (%s, %s, %s, %s, %s, %s)",
+      (
+        sourecType,
+        kind,
+        url,
+        soup.find('h1').find('font').get_text(),
+        soup.find(class_='co_content8').find('p').get_text(),
+        soup.find(class_='co_content8').find('a').get('href')
+        ))
+    conn.commit()
 def spData(tag):
   sourecType = urlArray[tag][0]
   kind = urlArray[tag][2]
@@ -46,12 +48,14 @@ def spData(tag):
       tt = tt + 1
       pageCount = pageCount + 1
       continue
+    pageCount = pageCount + 1
     for item in linkList:
       try:
         getGoodData(tag, kind[0:len(kind)-1]+item.get('href'))
       except:
         print('获取'+item.get('href')+"数据出错")
   if tag+1 < len(urlArray):
+    print('爬取下个类型')
     spData(tag+1)
 
 cur.execute("SELECT title, url, type, listTag  FROM title")
